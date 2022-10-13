@@ -1,6 +1,7 @@
 import numpy as np
 from pyearth import Earth
 from scipy.stats import spearmanr
+import gamma_cor
 
 
 class FuzzyMetric:
@@ -37,4 +38,5 @@ class FuzzyMetric:
         if p <= alpha:  # interpret the significance
             print("Samples are correlated (reject H0) p=%.3f" % p)
 
-    # def gamma_correlation(self):
+    def gamma_correlation(self):
+        return gamma_cor.generate(self.cfi_list[-1], self.cfi_list[-2])
