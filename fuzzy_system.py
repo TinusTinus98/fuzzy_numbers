@@ -1,5 +1,6 @@
 import numpy as np
-from pyearth import Earth
+
+# from pyearth import Earth
 from scipy.stats import spearmanr
 from scipy.stats import kendalltau
 import gamma_cor
@@ -16,8 +17,8 @@ class FuzzyMetric:
         self.i = []
         self.p = 100
         # self.s_permutation=[[i for i in range(self.m)]]
-        self.x_star = np.array([0.5, 0.4, 0.5, 0.6, 0.7, 0.4, 0.5, 0.2, 0.3, 0.6])
-        self.k = [np.ones((self.m, self.n))]
+        self.x_star = np.array([5.0 for _ in range(10)])
+        self.k = [np.ones(self.m) * 0.5]
         self.cfi_list = []
         self.cfi_calculation()
         self.mars_model = None
@@ -50,7 +51,7 @@ class FuzzyMetric:
         for l in range(self.l):
             dico = {
                 "l": self.l,
-                "k_list": self.k[i],
+                "k_list": self.k[l],
                 "cfi_list": self.cfi_list[l],
                 "kendall_tau": self.kendall[l][0],
                 "kendall_tau_p": self.kendall[l][1],
@@ -62,9 +63,9 @@ class FuzzyMetric:
         df.to_csv(out_file)
 
     def cfi_calculation(self):  # Composite fuzzy indicator
-        assert len(self.cfi_list) != self.l
+        assert len(self.cfi_list) != self.l - 1
         k_matrix = np.array([self.k[self.l] for _ in range(self.n)])
-        x_star_matrix = np.array([self.x_star[self.l] for _ in range(self.n)])
+        x_star_matrix = np.array([self.x_star for _ in range(self.n)])
         distance_list = np.abs(x_star_matrix - self.X)
         metric_list = np.divide(k_matrix, k_matrix + distance_list)
         cfi = np.prod(metric_list, axis=0)
@@ -107,4 +108,4 @@ class FuzzyMetric:
             sum_f_s = np.sum(array_f_s) / self.n
             value = np.sqrt(np.sum(np.square(array_f_s - sum_f_s)) / (self.n - 1))
             out.append(value)
-        self.i.append(out)
+        self.k.append(np.array(out))

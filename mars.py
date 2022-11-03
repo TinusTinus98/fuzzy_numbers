@@ -12,6 +12,7 @@ def mars_calculation(X, y, cfi):
     mse = cross_validation(model, X, y, cfi, n_splits=10, n_repeats=10)
     print(model.trace())  # Print the model
     print(model.summary())
+    return mse, model
 
 
 def cross_validation(model, X, y, cfi, n_splits=10, n_repeats=10):
