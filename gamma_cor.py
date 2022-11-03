@@ -12,4 +12,5 @@ def generate(x, y):
     nd = n - ns
     return (ns - nd) / (ns + nd)
 
-# def p_value():
+def p_value():
+    return 0

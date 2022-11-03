@@ -10,10 +10,13 @@ class FuzzyMetric:
         self.n = X.shape[0]  # number of observations
         self.l = 0
         self.X = X
+        self.i = []
+        # self.s_permutation=[[i for i in range(self.m)]]
         self.x_star = np.array([0.5, 0.4, 0.5, 0.6, 0.7, 0.4, 0.5, 0.2, 0.3, 0.6])
         self.k = [np.ones((self.m, self.n))]
         self.cfi_list = []
         self.cfi_calculation()
+        self.mars_model = None
 
     def cfi_calculation(self):  # Composite fuzzy indicator
         assert len(self.cfi_list) != self.l
@@ -24,10 +27,15 @@ class FuzzyMetric:
         cfi = np.prod(metric_list, axis=0)
         self.cfi_list.append(cfi)
 
-    def mars_calculation(self):
+    def s_calculation(self):
+        s = 0
+        self.s.append(s)
+
+    def mars_prediction(self):
         assert len(self.cfi_list) != self.l
         model = Earth()
         model.fit(self.X, self.cfi_calculation[self.l])  # Fit an Earth model
+        self.mars_model = model
         print(model.trace())  # Print the model
         print(model.summary())
 
@@ -40,3 +48,20 @@ class FuzzyMetric:
 
     def gamma_correlation(self):
         return gamma_cor.generate(self.cfi_list[-1], self.cfi_list[-2])
+
+    def indicators_calculation(self):
+        out = []
+        for j in range(self.m):
+            x_s = np.array([self.X for _ in range(self.n)])
+            array_f_s = np.array([0.0 for _ in range(self.n)])
+            for i in range(self.n):
+                x_s = np.copy(self.X)
+                x_s[:, j] = [self.X[i][j] for _ in range(self.n)]
+                self.mars_model.predict()
+                f_hat_s = np.array([self.mars_model.predict(x) for x in x_s])
+                f_s = np.sum(f_hat_s) / self.n
+                array_f_s[i] = f_s
+            sum_f_s = np.sum(array_f_s) / self.n
+            value = np.sqrt(np.sum(np.square(array_f_s - sum_f_s)) / (self.n - 1))
+            out.append(value)
+        self.i.append(out)
