@@ -1,22 +1,65 @@
 import numpy as np
 from pyearth import Earth
 from scipy.stats import spearmanr
+from scipy.stats import kendalltau
 import gamma_cor
+import mars
+import pandas as pd
 
 
 class FuzzyMetric:
-    def __init__(self, X) -> None:
+    def __init__(self, X, corr_choice="kendall") -> None:
         self.m = X.shape[1]  # number of dimensions
         self.n = X.shape[0]  # number of observations
         self.l = 0
         self.X = X
         self.i = []
+        self.p = 100
         # self.s_permutation=[[i for i in range(self.m)]]
         self.x_star = np.array([0.5, 0.4, 0.5, 0.6, 0.7, 0.4, 0.5, 0.2, 0.3, 0.6])
         self.k = [np.ones((self.m, self.n))]
         self.cfi_list = []
         self.cfi_calculation()
         self.mars_model = None
+        self.gamma = []
+        self.spearman = []
+        self.kendall = []
+        self.limit = 1
+        self.limit_p = 0.05
+        self.corr_choice = corr_choice
+        self.corr = 10
+        self.p_value = 10
+
+    def run(self):
+        corr_test = self.corr < self.limit and self.p_value < self.limit_p
+        while self.l < self.p or corr_test:
+            self.cfi_calculation()
+            self.mars_prediction()
+            self.indicators_calculation()
+            self.correlation()
+            self.gamma_correlation()
+            self.l += 1
+
+    def corr_choice(self):
+        if self.corr_choice == "kendall":
+            self.corr = self.kendall[self.l][0]
+            self.p_value = self.kendall[self.l][1]
+
+    def save(self, out_file):
+        out = []
+        for l in range(self.l):
+            dico = {
+                "l": self.l,
+                "k_list": self.k[i],
+                "cfi_list": self.cfi_list[l],
+                "kendall_tau": self.kendall[l][0],
+                "kendall_tau_p": self.kendall[l][1],
+                "spearman": self.spearman[l][0],
+                "spearman_p": self.spearman[l][1],
+                "gamma": self.gamma[l],
+            }
+        df = pd.DataFrame(out)
+        df.to_csv(out_file)
 
     def cfi_calculation(self):  # Composite fuzzy indicator
         assert len(self.cfi_list) != self.l
@@ -27,27 +70,27 @@ class FuzzyMetric:
         cfi = np.prod(metric_list, axis=0)
         self.cfi_list.append(cfi)
 
-    def s_calculation(self):
-        s = 0
-        self.s.append(s)
-
     def mars_prediction(self):
         assert len(self.cfi_list) != self.l
-        model = Earth()
-        model.fit(self.X, self.cfi_calculation[self.l])  # Fit an Earth model
+        mse, model = mars.mars_calculation(self.X, self.cfi_list[-1], self.cfi_list)
         self.mars_model = model
-        print(model.trace())  # Print the model
-        print(model.summary())
+        # print(model.trace())  # Print the model
+        # print(model.summary())
 
     def correlation(self):
-        coef, p = spearmanr(self.cfi_list[self.l], self.cfi_list[self.l - 1])
-        print("Spearmans correlation coefficient: %.3f" % coef)
+        x1 = self.cfi_list[self.l]
+        x2 = self.cfi_list[self.l - 1]
+        coef, p = spearmanr(x1, x2)
+        # print("Spearmans correlation coefficient: %.3f" % coef)
         alpha = 0.05
-        if p <= alpha:  # interpret the significance
-            print("Samples are correlated (reject H0) p=%.3f" % p)
+        # if p <= alpha:  # interpret the significance
+        #     print("Samples are correlated (reject H0) p=%.3f" % p)
+        self.spearman.append([coef, p])
+        tau, p_value = kendalltau(x1, x2)
+        self.kendall.append([tau, p_value])
 
     def gamma_correlation(self):
-        return gamma_cor.generate(self.cfi_list[-1], self.cfi_list[-2])
+        self.gamma.append[gamma_cor.generate(self.cfi_list[-1], self.cfi_list[-2])]
 
     def indicators_calculation(self):
         out = []
