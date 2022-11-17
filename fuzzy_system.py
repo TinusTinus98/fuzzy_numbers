@@ -1,4 +1,10 @@
 import numpy as np
+np.warnings.filterwarnings('ignore')
+# progress bar - bar de progression
+
+from tqdm import tqdm
+from time import sleep
+
 
 # from pyearth import Earth
 from scipy.stats import spearmanr
@@ -15,12 +21,14 @@ class FuzzyMetric:
         self.l = 0
         self.X = X
         self.i = []
-        self.p = 100
+        self.p = 10
         # self.s_permutation=[[i for i in range(self.m)]]
-        self.x_star = np.array([5.0 for _ in range(10)])
-        self.k = [np.ones(self.m) * 0.5]
+        self.x_star = np.array([1.84 for _ in range(10)])
+        self.val_0=0.5
+        self.k = [np.ones(self.m) * self.val_0]
         self.cfi_list = []
         self.cfi_calculation()
+        self.mse=[]
         self.mars_model = None
         self.gamma = []
         self.spearman = []
@@ -31,15 +39,21 @@ class FuzzyMetric:
         self.corr = 10
         self.p_value = 10
 
-    def run(self):
+    def run(self,outfile):
         corr_test = self.corr < self.limit and self.p_value < self.limit_p
-        while self.l < self.p or corr_test:
+        for _ in tqdm(range(self.p),desc ="Fuzzy system : "):
+            sleep(.1)
             self.cfi_calculation()
             self.mars_prediction()
             self.indicators_calculation()
             self.correlation()
             self.gamma_correlation()
             self.l += 1
+            print("turn : ", self.l)
+            corr_test = self.corr < self.limit and self.p_value < self.limit_p
+            self.save(outfile)
+            if corr_test:
+                return "Done"
 
     def corr_choice(self):
         if self.corr_choice == "kendall":
@@ -53,12 +67,14 @@ class FuzzyMetric:
                 "l": self.l,
                 "k_list": self.k[l],
                 "cfi_list": self.cfi_list[l],
+                "mse":self.mse[l],
                 "kendall_tau": self.kendall[l][0],
                 "kendall_tau_p": self.kendall[l][1],
                 "spearman": self.spearman[l][0],
                 "spearman_p": self.spearman[l][1],
                 "gamma": self.gamma[l],
             }
+            out.append(dico)
         df = pd.DataFrame(out)
         df.to_csv(out_file)
 
@@ -68,13 +84,14 @@ class FuzzyMetric:
         x_star_matrix = np.array([self.x_star for _ in range(self.n)])
         distance_list = np.abs(x_star_matrix - self.X)
         metric_list = np.divide(k_matrix, k_matrix + distance_list)
-        cfi = np.prod(metric_list, axis=0)
+        cfi = np.prod(metric_list, axis=1)
         self.cfi_list.append(cfi)
 
     def mars_prediction(self):
         assert len(self.cfi_list) != self.l
         mse, model = mars.mars_calculation(self.X, self.cfi_list[-1], self.cfi_list)
         self.mars_model = model
+        self.mse.append(mse)
         # print(model.trace())  # Print the model
         # print(model.summary())
 
@@ -91,7 +108,7 @@ class FuzzyMetric:
         self.kendall.append([tau, p_value])
 
     def gamma_correlation(self):
-        self.gamma.append[gamma_cor.generate(self.cfi_list[-1], self.cfi_list[-2])]
+        self.gamma.append(gamma_cor.generate(self.cfi_list[-1], self.cfi_list[-2]))
 
     def indicators_calculation(self):
         out = []
@@ -101,11 +118,12 @@ class FuzzyMetric:
             for i in range(self.n):
                 x_s = np.copy(self.X)
                 x_s[:, j] = [self.X[i][j] for _ in range(self.n)]
-                self.mars_model.predict()
-                f_hat_s = np.array([self.mars_model.predict(x) for x in x_s])
+                # self.mars_model.predict(x_s)
+                f_hat_s = self.mars_model.predict(x_s)
                 f_s = np.sum(f_hat_s) / self.n
                 array_f_s[i] = f_s
             sum_f_s = np.sum(array_f_s) / self.n
             value = np.sqrt(np.sum(np.square(array_f_s - sum_f_s)) / (self.n - 1))
             out.append(value)
+        # out=self.k[-1]+out-np.array([np.mean(out) for _ in range(self.m)])
         self.k.append(np.array(out))
