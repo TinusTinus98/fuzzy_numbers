@@ -1,14 +1,7 @@
 import numpy as np
-np.warnings.filterwarnings('ignore')
-# progress bar - bar de progression
-
 from tqdm import tqdm
 from time import sleep
-
-
-# from pyearth import Earth
-from scipy.stats import spearmanr
-from scipy.stats import kendalltau
+from scipy.stats import kendalltau, spearmanr
 import gamma_cor
 import mars
 import pandas as pd
@@ -23,12 +16,12 @@ class FuzzyMetric:
         self.i = []
         self.p = 10
         # self.s_permutation=[[i for i in range(self.m)]]
-        self.x_star = np.array([1.84 for _ in range(10)])
-        self.val_0=0.5
+        self.x_star = np.array([1.83 for _ in range(10)])
+        self.val_0 = 0.5
         self.k = [np.ones(self.m) * self.val_0]
         self.cfi_list = []
         self.cfi_calculation()
-        self.mse=[]
+        self.mse = []
         self.mars_model = None
         self.gamma = []
         self.spearman = []
@@ -39,10 +32,15 @@ class FuzzyMetric:
         self.corr = 10
         self.p_value = 10
 
-    def run(self,outfile):
+    def run(self, outfile: str):
+        """This function run the Fuzzy algorithm
+
+        Args:
+            outfile (str): path of the file you want to store the results. Results are a cfi list, k indicator lists and correlations with p-values
+        """
         corr_test = self.corr < self.limit and self.p_value < self.limit_p
-        for _ in tqdm(range(self.p),desc ="Fuzzy system : "):
-            sleep(.1)
+        for _ in tqdm(range(self.p), desc="Fuzzy system : "):
+            sleep(0.1)
             self.cfi_calculation()
             self.mars_prediction()
             self.indicators_calculation()
@@ -53,21 +51,26 @@ class FuzzyMetric:
             corr_test = self.corr < self.limit and self.p_value < self.limit_p
             self.save(outfile)
             if corr_test:
-                return "Done"
+                return None
 
     def corr_choice(self):
         if self.corr_choice == "kendall":
             self.corr = self.kendall[self.l][0]
             self.p_value = self.kendall[self.l][1]
 
-    def save(self, out_file):
+    def save(self, out_file: str):
+        """save on a csv file the data the cfi lists, k indicators list and correlation parameters
+
+        Args:
+            out_file (str): path of the csv file you want to store your data
+        """
         out = []
         for l in range(self.l):
             dico = {
                 "l": self.l,
                 "k_list": self.k[l],
                 "cfi_list": self.cfi_list[l],
-                "mse":self.mse[l],
+                "mse": self.mse[l],
                 "kendall_tau": self.kendall[l][0],
                 "kendall_tau_p": self.kendall[l][1],
                 "spearman": self.spearman[l][0],
@@ -78,7 +81,9 @@ class FuzzyMetric:
         df = pd.DataFrame(out)
         df.to_csv(out_file)
 
-    def cfi_calculation(self):  # Composite fuzzy indicator
+    def cfi_calculation(self):
+        """compute the cfi indicator with the k indicators using the t-norm. the new cfi list is added to self.cfi_list
+        """
         assert len(self.cfi_list) != self.l - 1
         k_matrix = np.array([self.k[self.l] for _ in range(self.n)])
         x_star_matrix = np.array([self.x_star for _ in range(self.n)])
@@ -99,10 +104,6 @@ class FuzzyMetric:
         x1 = self.cfi_list[self.l]
         x2 = self.cfi_list[self.l - 1]
         coef, p = spearmanr(x1, x2)
-        # print("Spearmans correlation coefficient: %.3f" % coef)
-        alpha = 0.05
-        # if p <= alpha:  # interpret the significance
-        #     print("Samples are correlated (reject H0) p=%.3f" % p)
         self.spearman.append([coef, p])
         tau, p_value = kendalltau(x1, x2)
         self.kendall.append([tau, p_value])
@@ -118,12 +119,9 @@ class FuzzyMetric:
             for i in range(self.n):
                 x_s = np.copy(self.X)
                 x_s[:, j] = [self.X[i][j] for _ in range(self.n)]
-                # self.mars_model.predict(x_s)
                 f_hat_s = self.mars_model.predict(x_s)
-                f_s = np.sum(f_hat_s) / self.n
-                array_f_s[i] = f_s
+                array_f_s[i] = np.sum(f_hat_s) / self.n
             sum_f_s = np.sum(array_f_s) / self.n
             value = np.sqrt(np.sum(np.square(array_f_s - sum_f_s)) / (self.n - 1))
             out.append(value)
-        # out=self.k[-1]+out-np.array([np.mean(out) for _ in range(self.m)])
         self.k.append(np.array(out))

@@ -1,10 +1,8 @@
-# https://github.com/scikit-learn-contrib/py-earth
 from pyearth import Earth
 import numpy as np
-np.warnings.filterwarnings('ignore')
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import RepeatedKFold
-from sklearn.datasets import make_regression
+
 
 def mars_calculation(X, y, cfi):
     model = Earth()
@@ -23,6 +21,3 @@ def cross_validation(model, X, y, cfi, n_splits=10, n_repeats=10):
     x_cfi = np.hstack((X, np.array([[x] for x in cfi[-1]])))
     scores = cross_val_score(model, X, y, scoring=scoring, cv=cv, n_jobs=-1)
     return np.mean(scores)  # print results
-
-
-# correlation plot
