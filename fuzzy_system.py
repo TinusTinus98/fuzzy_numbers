@@ -97,8 +97,8 @@ class FuzzyMetric:
         mse, model = mars.mars_calculation(self.X, self.cfi_list[-1], self.cfi_list)
         self.mars_model = model
         self.mse.append(mse)
-        # print(model.trace())  # Print the model
-        # print(model.summary())
+        print(model.trace())  # Print the model
+        print(model.summary())
 
     def correlation(self):
         x1 = self.cfi_list[self.l]
@@ -114,14 +114,14 @@ class FuzzyMetric:
     def indicators_calculation(self):
         out = []
         for j in range(self.m):
-            x_s = np.array([self.X for _ in range(self.n)])
+            # x_s = np.array([self.X for _ in range(self.n)])
             array_f_s = np.array([0.0 for _ in range(self.n)])
             for i in range(self.n):
                 x_s = np.copy(self.X)
                 x_s[:, j] = [self.X[i][j] for _ in range(self.n)]
                 f_hat_s = self.mars_model.predict(x_s)
                 array_f_s[i] = np.sum(f_hat_s) / self.n
-            sum_f_s = np.sum(array_f_s) / self.n
-            value = np.sqrt(np.sum(np.square(array_f_s - sum_f_s)) / (self.n - 1))
+            mean_f_s = np.sum(array_f_s) / self.n
+            value = np.sqrt(np.sum(np.square(array_f_s - mean_f_s)) / (self.n - 1))
             out.append(value)
         self.k.append(np.array(out))
