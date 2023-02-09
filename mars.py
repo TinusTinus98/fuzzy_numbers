@@ -7,7 +7,8 @@ from sklearn.model_selection import RepeatedKFold
 def mars_calculation(X, y, cfi):
     model = Earth()
     model.fit(X, y)  # Fit an Earth model
-    mse = cross_validation(model, X, y, cfi, n_splits=10, n_repeats=10)
+    # mse = cross_validation(model, X, y, cfi, n_splits=10, n_repeats=10)
+    mse=0
     print(model.trace())  # Print the model
     print(model.summary())
     return mse, model

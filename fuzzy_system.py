@@ -15,7 +15,6 @@ class FuzzyMetric:
         self.X = X
         self.i = []
         self.p = 10
-        # self.s_permutation=[[i for i in range(self.m)]]
         self.x_star = np.array([1.83 for _ in range(10)])
         self.val_0 = 0.5
         self.k = [np.ones(self.m) * self.val_0]
@@ -114,7 +113,6 @@ class FuzzyMetric:
     def indicators_calculation(self):
         out = []
         for j in range(self.m):
-            # x_s = np.array([self.X for _ in range(self.n)])
             array_f_s = np.array([0.0 for _ in range(self.n)])
             for i in range(self.n):
                 x_s = np.copy(self.X)
